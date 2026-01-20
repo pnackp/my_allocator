@@ -16,12 +16,6 @@ struct mem_block {
 struct mem_block * first = NULL;
 struct mem_block * last = NULL;
 
-void* align_ptr(void* p, size_t align) {
-    uintptr_t addr = (uintptr_t)p;
-    addr = (addr + align - 1) & ~(align - 1);
-    return (void*)addr;
-}
-
 void* my_alloc(size_t bytes) {
   size_t align_bytes = ALIGN(bytes);
   if(first != NULL){
@@ -50,10 +44,10 @@ void* my_alloc(size_t bytes) {
     }
   }
   
-  void* buffer = sbrk(align_bytes + BLOCK_META_SIZE + ALIGNMENT);
+  void* buffer = sbrk(BLOCK_META_SIZE + align_bytes);
   if (buffer == (void*)-1) return NULL;
   
-  struct mem_block* node = align_ptr(buffer, ALIGNMENT);
+  struct mem_block* node = buffer;
   node->size = align_bytes;
   node->is_free = 0;
   node->next = NULL;         
@@ -73,6 +67,7 @@ void my_free(void* ptr){
     if (!ptr) return;
     
     struct mem_block* node = (struct mem_block*)((char*)ptr - BLOCK_META_SIZE);
+    if(node->is_free)return;
     node->is_free = 1;
 
     if (node->next && node->next->is_free) {
